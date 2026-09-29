@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="referrer" content="no-referrer-when-downgrade">
+    <title>Customer GPS Mapping Dashboard - Yirgalem Water Service</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            800: '#166534',
+                            900: '#14532d',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <!-- Leaflet MarkerCluster CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- PapaParse for CSV parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        #map-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        #map {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            background-color: #e5e7eb;
+        }
+
+        .dark #map {
+            background-color: #1f2937;
+        }
+
+        .leaflet-tile-container img {
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+            image-rendering: -webkit-optimize-contrast;
+        }
+
+        .leaflet-popup-content-wrapper {
+            border-radius: 12px;
+            padding: 4px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.25);
+        }
+
+        .dark .leaflet-popup-content-wrapper {
+            background-color: #1f2937;
+            color: #f3f4f6;
+        }
+
+        .dark .leaflet-popup-tip {
+            background-color: #1f2937;
+        }
+
+        .leaflet-control-layers {
+            border-radius: 10px !important;
+            border: 1px solid rgba(0, 0, 0, 0.1) !important;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+            font-family: inherit !important;
+            font-size: 12px !important;
+            padding: 8px 12px !important;
+        }
+
+        .dark .leaflet-control-layers {
+            background-color: #1f2937 !important;
+            color: #f3f4f6 !important;
+            border-color: #374151 !important;
+        }
+
+        /* Marker Cluster Visual Styles */
+        .marker-cluster-small {
+            background-color: rgba(34, 197, 94, 0.6);
+        }
+        .marker-cluster-small div {
+            background-color: rgba(22, 163, 74, 0.9);
+            color: white;
+            font-weight: bold;
+        }
+        .marker-cluster-medium {
+            background-color: rgba(234, 179, 8, 0.6);
+        }
+        .marker-cluster-medium div {
+            background-color: rgba(202, 138, 4, 0.9);
+            color: white;
+            font-weight: bold;
+        }
+        .marker-cluster-large {
+            background-color: rgba(239, 68, 68, 0.6);
+        }
+        .marker-cluster-large div {
+            background-color: rgba(220, 38, 38, 0.9);
+            color: white;
+            font-weight: bold;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.05);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(0,0,0,0.2);
+            border-radius: 3px;
+        }
+        .dark ::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.2);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-100 font-sans transition-colors duration-200 h-full flex flex-col">
+
+    <header class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 h-16 shrink-0 flex items-center justify-between px-4 lg:px-6 z-30 shadow-sm">
+        <div class="flex items-center gap-3">
+            <button id="toggleSidebarBtn" class="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition" title="Toggle Sidebar">
+                <i class="fa-solid fa-bars"></i>
+            </button>
+            <div class="bg-brand-600 text-white p-2.5 rounded-xl shadow-md flex items-center justify-center">
+                <i class="fa-solid fa-map-location-dot text-xl"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-lg leading-tight tracking-tight text-gray-900 dark:text-white">Customer GPS Mapper</h1>
+                <p class="text-xs text-gray-500 dark:text-gray-400">Yirgalem Water Service – Location & Utility Analytics</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2 sm:gap-3">
+            <button id="themeToggleBtn" title="Toggle Dark/Light Mode" class="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition">
+                <i id="themeIcon" class="fa-solid fa-moon"></i>
+            </button>
+
+            <label class="cursor-pointer bg-brand-600 hover:bg-brand-700 text-white px-3.5 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition shadow-sm">
+                <i class="fa-solid fa-file-csv"></i>
+                <span class="hidden sm:inline">Upload New CSV</span>
+                <input type="file" id="csvFileInput" accept=".csv, .txt" class="hidden">
+            </label>
+
+            <button id="exportCsvBtn" class="bg-gray-700 hover:bg-gray-800 text-white px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition shadow-sm">
+                <i class="fa-solid fa-download"></i>
+                <span class="hidden md:inline">Export Filtered</span>
+            </button>
+        </div>
+    </header>
+
+    <div class="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
+
+        <!-- Sidebar / Filter Panel -->
+        <aside id="sidebar" class="w-full lg:w-96 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col h-full z-20 transition-all duration-300 shrink-0">
+            
+            <!-- Statistics KPI Cards -->
+            <div class="p-4 border-b border-gray-200 dark:border-gray-700 grid grid-cols-2 gap-2.5 shrink-0">
+                <div class="bg-gray-50 dark:bg-gray-750 p-3 rounded-xl border border-gray-200 dark:border-gray-700">
+                    <span class="text-xs text-gray-500 dark:text-gray-400 font-medium">Filtered Total</span>
+                    <div id="statTotal" class="text-xl font-bold text-gray-900 dark:text-white">0</div>
+                </div>
+                <div class="bg-emerald-50 dark:bg-emerald-950/30 p-3 rounded-xl border border-emerald-200 dark:border-emerald-800/40">
+                    <span class="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Active Meters</span>
+                    <div id="statActive" class="text-xl font-bold text-emerald-700 dark:text-emerald-300">0</div>
+                </div>
+                <div class="bg-rose-50 dark:bg-rose-950/30 p-3 rounded-xl border border-rose-200 dark:border-rose-800/40">
+                    <span class="text-xs text-rose-600 dark:text-rose-400 font-medium">Disconnected</span>
+                    <div id="statDisconnected" class="text-xl font-bold text-rose-700 dark:text-rose-300">0</div>
+                </div>
+                <div class="bg-amber-50 dark:bg-amber-950/30 p-3 rounded-xl border border-amber-200 dark:border-amber-800/40">
+                    <span class="text-xs text-amber-600 dark:text-amber-400 font-medium">Valid GPS</span>
+                    <div id="statValidGps" class="text-xl font-bold text-amber-700 dark:text-amber-300">0</div>
+                </div>
+            </div>
+
+            <!-- Filter Controls -->
+            <div class="p-4 border-b border-gray-200 dark:border-gray-700 space-y-3 shrink-0">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Filters & Search</h2>
+                    <button id="resetFiltersBtn" class="text-xs text-brand-600 hover:text-brand-700 dark:text-brand-400 font-medium hover:underline">Reset Filters</button>
+                </div>
+
+                <!-- Global Search Box -->
+                <div class="relative">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+                    <input type="text" id="searchInput" placeholder="Search Contract, Name, House No, Kebele..." 
+                        class="w-full pl-9 pr-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 dark:text-white">
+                </div>
+
+                <!-- Kebele Filter Dropdown -->
+                <div>
+                    <label class="block text-xs font-semibold text-brand-700 dark:text-brand-400 mb-1 flex items-center justify-between">
+                        <span><i class="fa-solid fa-city mr-1"></i> Kebele Filter</span>
+                        <span id="kebeleCountBadge" class="text-[10px] bg-brand-100 dark:bg-brand-900/60 text-brand-800 dark:text-brand-200 px-1.5 py-0.2 rounded font-mono">0 Kebeles</span>
+                    </label>
+                    <select id="kebeleFilter" class="w-full py-2 px-2.5 bg-brand-50/50 dark:bg-gray-700 border border-brand-300 dark:border-gray-600 rounded-lg text-xs font-medium focus:outline-none focus:ring-2 focus:ring-brand-500 dark:text-white">
+                        <option value="ALL">All Kebeles</option>
+                    </select>
+                </div>
+
+                <!-- Status Filter -->
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Meter Status</label>
+                        <select id="statusFilter" class="w-full py-1.5 px-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 dark:text-white">
+                            <option value="ALL">All Statuses</option>
+                            <option value="Active">Active Only</option>
+                            <option value="Disconnected">Disconnected Only</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">GPS Filter</label>
+                        <select id="gpsFilter" class="w-full py-1.5 px-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 dark:text-white">
+                            <option value="ALL">All Records</option>
+                            <option value="VALID" selected>Valid GPS Only</option>
+                            <option value="MISSING">Missing GPS Only</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Customer List Side Tab -->
+            <div class="flex-1 flex flex-col min-h-0 bg-white dark:bg-gray-800">
+                <div class="px-4 py-2 bg-gray-50 dark:bg-gray-750 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center shrink-0">
+                    <span class="text-xs font-semibold text-gray-600 dark:text-gray-300">Customer Records (<span id="recordCount">0</span>)</span>
+                    <span class="text-[11px] text-gray-400">Click entry to focus map</span>
+                </div>
+                
+                <div id="customerList" class="flex-1 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700">
+                    <!-- Dynamic Customer List Items -->
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Map Area -->
+        <main id="map-container">
+            <div id="map"></div>
+
+            <!-- Map Control Buttons Overlay -->
+            <div class="absolute top-4 left-4 z-[400] flex flex-col gap-2">
+                <button id="fitBoundsBtn" title="Fit All Markers" class="bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 p-2.5 rounded-lg shadow-md hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 transition flex items-center justify-center">
+                    <i class="fa-solid fa-expand"></i>
+                </button>
+            </div>
+
+            <!-- Map Legend -->
+            <div class="absolute bottom-6 right-4 z-[400] bg-white/90 dark:bg-gray-800/90 backdrop-blur-md px-3 py-2 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 flex items-center gap-4 text-xs">
+                <div class="flex items-center gap-1.5">
+                    <span class="w-3 h-3 rounded-full bg-emerald-500 inline-block border border-white"></span>
+                    <span class="text-gray-700 dark:text-gray-200 font-medium">Active Meter</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <span class="w-3 h-3 rounded-full bg-rose-500 inline-block border border-white"></span>
+                    <span class="text-gray-700 dark:text-gray-200 font-medium">Disconnected</span>
+                </div>
+            </div>
+        </main>
+
+    </div>
+
+    <!-- Leaflet JS & Plugins -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+
+    <script>
+        let rawCustomerData = [];
+        let filteredCustomerData = [];
+        let map, markerClusterGroup;
+        let markersMap = new Map();
+
+        // DOM Elements
+        const toggleSidebarBtn = document.getElementById('toggleSidebarBtn');
+        const sidebar = document.getElementById('sidebar');
+        const themeToggleBtn = document.getElementById('themeToggleBtn');
+        const themeIcon = document.getElementById('themeIcon');
+        const csvFileInput = document.getElementById('csvFileInput');
+        const exportCsvBtn = document.getElementById('exportCsvBtn');
+        const searchInput = document.getElementById('searchInput');
+        const kebeleFilter = document.getElementById('kebeleFilter');
+        const kebeleCountBadge = document.getElementById('kebeleCountBadge');
+        const statusFilter = document.getElementById('statusFilter');
+        const gpsFilter = document.getElementById('gpsFilter');
+        const resetFiltersBtn = document.getElementById('resetFiltersBtn');
+        const customerList = document.getElementById('customerList');
+        const fitBoundsBtn = document.getElementById('fitBoundsBtn');
+
+        const statTotal = document.getElementById('statTotal');
+        const statActive = document.getElementById('statActive');
+        const statDisconnected = document.getElementById('statDisconnected');
+        const statValidGps = document.getElementById('statValidGps');
+        const recordCount = document.getElementById('recordCount');
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initMap();
+            initTheme();
+            autoFetchCustomerCsv();
+            setupEventListeners();
+        });
+
+        function initMap() {
+            map = L.map('map', {
+                center: [6.739, 38.372],
+                zoom: 14,
+                maxZoom: 21,
+                zoomControl: true
+            });
+
+            const cartoVoyager = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+                maxNativeZoom: 19,
+                maxZoom: 21,
+                subdomains: 'abcd',
+                attribution: '&copy; OpenStreetMap &copy; CARTO'
+            });
+
+            const esriWorldImagery = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                maxNativeZoom: 18,
+                maxZoom: 21,
+                attribution: 'Tiles &copy; Esri'
+            });
+
+            const openStreetMapStandard = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxNativeZoom: 18,
+                maxZoom: 21,
+                attribution: '&copy; OpenStreetMap contributors'
+            });
+
+            cartoVoyager.addTo(map);
+
+            const baseMaps = {
+                "Standard Map": cartoVoyager,
+                "Satellite View": esriWorldImagery,
+                "OpenStreetMap": openStreetMapStandard
+            };
+
+            L.control.layers(baseMaps, null, { position: 'topright' }).addTo(map);
+
+            markerClusterGroup = L.markerClusterGroup({
+                chunkedLoading: true,
+                maxClusterRadius: 45,
+                spiderfyOnMaxZoom: true,
+                disableClusteringAtZoom: 18
+            });
+            map.addLayer(markerClusterGroup);
+        }
+
+        function initTheme() {
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                document.documentElement.classList.add('dark');
+                themeIcon.className = 'fa-solid fa-sun';
+            }
+        }
+
+        function autoFetchCustomerCsv() {
+            Papa.parse('Corrected_Customer_GPS_Data.csv', {
+                download: true,
+                header: true,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    if (results.data && results.data.length > 0) {
+                        loadCustomerData(results.data);
+                    }
+                },
+                error: function() {
+                    console.log('Direct CSV file load pending manual user upload.');
+                }
+            });
+        }
+
+        function loadCustomerData(data) {
+            rawCustomerData = data.map((item, idx) => {
+                let rawLat = item.Latitude || item.lat || item.MeterAltitude || item.altitude || 0;
+                let rawLng = item.Longitude || item.lng || item.MeterLongitude || item.longitude || 0;
+
+                let lat = parseFloat(rawLat);
+                let lng = parseFloat(rawLng);
+
+                // Auto-scale integer coordinate values
+                if (Math.abs(lat) > 90) lat = lat / 1000000;
+                if (Math.abs(lng) > 180) lng = lng / 1000000;
+
+                const isValidGPS = (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0);
+
+                const contractNo = item.ContractNo || item.Contract_No || `CN-${100000 + idx + 1}`;
+                const name = item.BookNo || item.CustomerName || item.Customer_Name || 'Customer Record';
+                const kebeleVal = item.Kebele ? `Kebele ${String(item.Kebele).padStart(2, '0')}` : 'Unspecified';
+                const house = item.HouseNo || 'N/A';
+                const status = (item.MeterStatus || item.Status || 'ACTIVE').toString().trim();
+
+                return {
+                    id: idx + 1,
+                    ContractNo: contractNo,
+                    CustomerName: name,
+                    Kebele: kebeleVal,
+                    HouseNo: house,
+                    MeterNo: item.MeterNo || `M-${contractNo}`,
+                    Status: status.toUpperCase().includes('DISCONN') ? 'Disconnected' : 'Active',
+                    Latitude: isValidGPS ? lat : 0,
+                    Longitude: isValidGPS ? lng : 0,
+                    hasGPS: isValidGPS
+                };
+            });
+
+            populateKebeleOptions();
+            applyFilters();
+        }
+
+        function populateKebeleOptions() {
+            const kebeleMap = new Map();
+            rawCustomerData.forEach(c => {
+                const k = c.Kebele;
+                kebeleMap.set(k, (kebeleMap.get(k) || 0) + 1);
+            });
+
+            const sortedKebeles = Array.from(kebeleMap.keys()).sort((a, b) => a.localeCompare(b, undefined, {numeric: true}));
+
+            kebeleFilter.innerHTML = '<option value="ALL">All Kebeles</option>';
+            sortedKebeles.forEach(k => {
+                const opt = document.createElement('option');
+                opt.value = k;
+                opt.textContent = `${k} (${kebeleMap.get(k).toLocaleString()})`;
+                kebeleFilter.appendChild(opt);
+            });
+
+            kebeleCountBadge.textContent = `${sortedKebeles.length} Kebeles`;
+        }
+
+        function applyFilters() {
+            const searchTerm = searchInput.value.toLowerCase().trim();
+            const selectedKebele = kebeleFilter.value;
+            const selectedStatus = statusFilter.value;
+            const selectedGps = gpsFilter.value;
+
+            filteredCustomerData = rawCustomerData.filter(item => {
+                const matchesSearch = !searchTerm || 
+                    item.CustomerName.toLowerCase().includes(searchTerm) ||
+                    String(item.ContractNo).toLowerCase().includes(searchTerm) ||
+                    String(item.HouseNo).toLowerCase().includes(searchTerm) ||
+                    item.Kebele.toLowerCase().includes(searchTerm);
+
+                const matchesKebele = (selectedKebele === 'ALL') || (item.Kebele === selectedKebele);
+                const matchesStatus = (selectedStatus === 'ALL') || (selectedStatus.toLowerCase() === item.Status.toLowerCase());
+                const matchesGps = (selectedGps === 'ALL') ||
+                    (selectedGps === 'VALID' && item.hasGPS) ||
+                    (selectedGps === 'MISSING' && !item.hasGPS);
+
+                return matchesSearch && matchesKebele && matchesStatus && matchesGps;
+            });
+
+            updateStatistics();
+            renderCustomerList();
+            renderMapMarkers();
+        }
+
+        function updateStatistics() {
+            const total = filteredCustomerData.length;
+            const active = filteredCustomerData.filter(c => c.Status === 'Active').length;
+            const disconnected = filteredCustomerData.filter(c => c.Status === 'Disconnected').length;
+            const validGps = filteredCustomerData.filter(c => c.hasGPS).length;
+
+            statTotal.textContent = total.toLocaleString();
+            statActive.textContent = active.toLocaleString();
+            statDisconnected.textContent = disconnected.toLocaleString();
+            statValidGps.textContent = validGps.toLocaleString();
+            recordCount.textContent = total.toLocaleString();
+        }
+
+        function renderCustomerList() {
+            customerList.innerHTML = '';
+
+            if (filteredCustomerData.length === 0) {
+                customerList.innerHTML = `
+                    <div class="p-6 text-center text-gray-400">
+                        <i class="fa-solid fa-folder-open text-2xl mb-2"></i>
+                        <p class="text-xs">No customer records found.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const displayList = filteredCustomerData.slice(0, 150);
+
+            displayList.forEach(customer => {
+                const isDisconnected = customer.Status === 'Disconnected';
+                const card = document.createElement('div');
+                card.className = `p-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition flex justify-between items-center ${!customer.hasGPS ? 'opacity-60' : ''}`;
+                
+                card.innerHTML = `
+                    <div class="space-y-0.5">
+                        <div class="flex items-center gap-2">
+                            <span class="font-semibold text-xs text-gray-900 dark:text-white">${customer.CustomerName}</span>
+                            <span class="text-[10px] px-1.5 py-0.5 rounded ${isDisconnected ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'} font-medium">
+                                ${customer.Status}
+                            </span>
+                        </div>
+                        <div class="text-[11px] text-gray-500 dark:text-gray-400 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                            <span class="text-brand-600 dark:text-brand-400 font-medium"><i class="fa-solid fa-city text-[9px] mr-0.5"></i>${customer.Kebele}</span>
+                            <span>Contract: <b>${customer.ContractNo}</b></span>
+                            <span>House: <b>${customer.HouseNo}</b></span>
+                        </div>
+                    </div>
+                    <div class="text-gray-400">
+                        <i class="fa-solid fa-chevron-right text-xs"></i>
+                    </div>
+                `;
+
+                card.addEventListener('click', () => {
+                    if (customer.hasGPS) {
+                        focusCustomerOnMap(customer);
+                    } else {
+                        alert(`Customer "${customer.CustomerName}" does not have valid GPS coordinates.`);
+                    }
+                });
+
+                customerList.appendChild(card);
+            });
+        }
+
+        function renderMapMarkers() {
+            markerClusterGroup.clearLayers();
+            markersMap.clear();
+
+            const validCustomers = filteredCustomerData.filter(c => c.hasGPS);
+            const bounds = [];
+
+            validCustomers.forEach(customer => {
+                const isDisconnected = customer.Status === 'Disconnected';
+
+                const iconColor = isDisconnected ? '#f43f5e' : '#10b981';
+                const customIcon = L.divIcon({
+                    className: 'custom-map-pin',
+                    html: `<div style="background-color: ${iconColor}; width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.35);"></div>`,
+                    iconSize: [14, 14],
+                    iconAnchor: [7, 7]
+                });
+
+                const marker = L.marker([customer.Latitude, customer.Longitude], { icon: customIcon });
+
+                const popupContent = `
+                    <div class="p-1 space-y-2 min-w-[210px]">
+                        <div class="border-b border-gray-200 dark:border-gray-700 pb-1.5">
+                            <span class="inline-block px-2 py-0.5 text-[10px] rounded font-bold uppercase ${isDisconnected ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'} mb-1">
+                                ${customer.Status}
+                            </span>
+                            <h3 class="font-bold text-sm text-gray-900 dark:text-white leading-tight">${customer.CustomerName}</h3>
+                        </div>
+                        <div class="text-xs space-y-1 text-gray-600 dark:text-gray-300">
+                            <div><i class="fa-solid fa-city w-4 text-brand-500"></i><b>Kebele:</b> ${customer.Kebele}</div>
+                            <div><i class="fa-solid fa-file-contract w-4 text-gray-400"></i><b>Contract:</b> ${customer.ContractNo}</div>
+                            <div><i class="fa-solid fa-house w-4 text-gray-400"></i><b>House No:</b> ${customer.HouseNo}</div>
+                            <div><i class="fa-solid fa-location-dot w-4 text-gray-400"></i><b>GPS:</b> ${customer.Latitude.toFixed(6)}, ${customer.Longitude.toFixed(6)}</div>
+                        </div>
+                        <div class="pt-1.5 border-t border-gray-100 dark:border-gray-700 flex justify-end">
+                            <a href="https://www.google.com/maps?q=${customer.Latitude},${customer.Longitude}" target="_blank" class="text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1">
+                                Google Maps <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                            </a>
+                        </div>
+                    </div>
+                `;
+
+                marker.bindPopup(popupContent);
+                markerClusterGroup.addLayer(marker);
+                markersMap.set(customer.id, marker);
+
+                bounds.push([customer.Latitude, customer.Longitude]);
+            });
+
+            if (bounds.length > 0) {
+                map.fitBounds(bounds, { padding: [40, 40], maxZoom: 16 });
+            }
+        }
+
+        function focusCustomerOnMap(customer) {
+            const marker = markersMap.get(customer.id);
+            if (marker) {
+                map.setView([customer.Latitude, customer.Longitude], 18, { animate: true });
+                markerClusterGroup.zoomToShowLayer(marker, () => {
+                    marker.openPopup();
+                });
+            }
+        }
+
+        function setupEventListeners() {
+            themeToggleBtn.addEventListener('click', () => {
+                document.documentElement.classList.toggle('dark');
+                const isDark = document.documentElement.classList.contains('dark');
+                themeIcon.className = isDark ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+            });
+
+            toggleSidebarBtn.addEventListener('click', () => {
+                sidebar.classList.toggle('hidden');
+                setTimeout(() => map.invalidateSize(), 300);
+            });
+
+            searchInput.addEventListener('input', applyFilters);
+            kebeleFilter.addEventListener('change', applyFilters);
+            statusFilter.addEventListener('change', applyFilters);
+            gpsFilter.addEventListener('change', applyFilters);
+
+            resetFiltersBtn.addEventListener('click', () => {
+                searchInput.value = '';
+                kebeleFilter.value = 'ALL';
+                statusFilter.value = 'ALL';
+                gpsFilter.value = 'VALID';
+                applyFilters();
+            });
+
+            fitBoundsBtn.addEventListener('click', () => {
+                const validCustomers = filteredCustomerData.filter(c => c.hasGPS);
+                if (validCustomers.length > 0) {
+                    const bounds = validCustomers.map(c => [c.Latitude, c.Longitude]);
+                    map.fitBounds(bounds, { padding: [50, 50] });
+                }
+            });
+
+            csvFileInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                Papa.parse(file, {
+                    header: true,
+                    skipEmptyLines: true,
+                    complete: function(results) {
+                        if (results.data && results.data.length > 0) {
+                            loadCustomerData(results.data);
+                        } else {
+                            alert('No valid records found in the CSV file.');
+                        }
+                    }
+                });
+            });
+
+            exportCsvBtn.addEventListener('click', () => {
+                if (filteredCustomerData.length === 0) {
+                    alert('No customer data available to export.');
+                    return;
+                }
+
+                const exportData = filteredCustomerData.map(c => ({
+                    ContractNo: c.ContractNo,
+                    CustomerName: c.CustomerName,
+                    Kebele: c.Kebele,
+                    HouseNo: c.HouseNo,
+                    Status: c.Status,
+                    Latitude: c.Latitude,
+                    Longitude: c.Longitude
+                }));
+
+                const csv = Papa.unparse(exportData);
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement("a");
+                const url = URL.createObjectURL(blob);
+                link.setAttribute("href", url);
+                link.setAttribute("download", `Customer_GPS_Export.csv`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Home – Yirgalem Water Service</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body { font-family: 'Inter', sans-serif; transition: background-color 0.3s, color 0.3s; }
+    
+    .card-hover { 
+      transition: transform 0.25s ease, box-shadow 0.25s ease; 
+    }
+    .card-hover:hover { 
+      transform: translateY(-4px); 
+      box-shadow: 0 12px 24px -6px rgba(0, 102, 204, 0.15); 
+    }
+    
+    .fade-in { animation: fadeIn 0.5s ease-out; }
+    @keyframes fadeIn { 
+      from { opacity: 0; transform: translateY(12px); } 
+      to { opacity: 1; transform: translateY(0); } 
+    }
+
+    /* Standard Water Utility Gradients */
+    .gradient-hero { background: linear-gradient(135deg, #0284c7, #0369a1); }
+    .gradient-blue { background: linear-gradient(135deg, #2563eb, #1d4ed8); }
+    .gradient-cyan { background: linear-gradient(135deg, #0891b2, #0e7490); }
+    .gradient-amber { background: linear-gradient(135deg, #d97706, #b45309); }
+    .gradient-teal { background: linear-gradient(135deg, #0d9488, #0f766e); }
+    
+    .action-icon {
+      width: 3.5rem;
+      height: 3.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 0.875rem;
+      font-size: 1.5rem;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 dark:bg-slate-900 dark:text-slate-100 min-h-screen">
+  <div class="container mx-auto p-4 md:p-8 max-w-6xl">
+    
+    <!-- Header -->
+    <header class="flex flex-wrap justify-between items-center mb-8 gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
+      <div class="flex items-center gap-3">
+        <div class="bg-sky-500 text-white p-3 rounded-2xl shadow-md">
+          <i class="fas fa-droplet text-2xl"></i>
+        </div>
+        <div>
+          <h1 class="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Yirgalem Water Service</h1>
+          <p class="text-sm font-medium text-sky-700 dark:text-sky-400">Enterprise Management Portal</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <button id="darkModeToggle" class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition shadow-sm" aria-label="Toggle dark mode">
+          <i class="fas fa-moon"></i>
+        </button>
+        <button id="logoutBtn" class="bg-rose-600 text-white font-medium py-2.5 px-5 rounded-xl hover:bg-rose-700 transition flex items-center gap-2 shadow-sm">
+          <i class="fas fa-right-from-bracket"></i> Logout
+        </button>
+      </div>
+    </header>
+
+    <!-- Welcome Hero Banner -->
+    <div class="gradient-hero text-white rounded-2xl shadow-lg p-6 md:p-8 mb-8 fade-in">
+      <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-2xl md:text-3xl font-bold mb-2 flex items-center gap-2">
+            <span>Welcome back, <span id="userNameDisplay">Admin</span>!</span>
+          </h2>
+          <p class="text-sky-100 text-sm md:text-base">Manage customer records, compute tariffs, process complaints, and analyze GPS utility coverage.</p>
+        </div>
+        <div class="flex items-center gap-2 text-xs md:text-sm bg-white/15 backdrop-blur-md px-4 py-2.5 rounded-xl border border-white/20 shrink-0">
+          <i class="fas fa-clock text-sky-200"></i>
+          <span id="lastLoginDisplay">Last login: --</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-8 fade-in">
+      <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700/80 p-5 flex items-center gap-4 card-hover">
+        <div class="bg-sky-100 dark:bg-sky-950/60 p-3.5 rounded-xl text-sky-600 dark:text-sky-400">
+          <i class="fas fa-users text-2xl"></i>
+        </div>
+        <div>
+          <p class="text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase tracking-wider">Total Customers</p>
+          <p id="customerCount" class="text-2xl font-bold text-slate-900 dark:text-white mt-0.5">--</p>
+        </div>
+      </div>
+      
+      <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700/80 p-5 flex items-center gap-4 card-hover">
+        <div class="bg-amber-100 dark:bg-amber-950/60 p-3.5 rounded-xl text-amber-600 dark:text-amber-400">
+          <i class="fas fa-clipboard-list text-2xl"></i>
+        </div>
+        <div>
+          <p class="text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase tracking-wider">Total Complaints</p>
+          <p id="complaintCount" class="text-2xl font-bold text-slate-900 dark:text-white mt-0.5">0</p>
+        </div>
+      </div>
+      
+      <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700/80 p-5 flex items-center gap-4 card-hover">
+        <div class="bg-rose-100 dark:bg-rose-950/60 p-3.5 rounded-xl text-rose-600 dark:text-rose-400">
+          <i class="fas fa-triangle-exclamation text-2xl"></i>
+        </div>
+        <div>
+          <p class="text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase tracking-wider">Pending Actions</p>
+          <p id="pendingCount" class="text-2xl font-bold text-slate-900 dark:text-white mt-0.5">0</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Action Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      
+      <!-- Customer Search -->
+      <a href="search.html" class="group block bg-white dark:bg-slate-800 rounded-2xl shadow-sm hover:shadow-md p-6 card-hover fade-in border border-slate-200 dark:border-slate-700/80">
+        <div class="flex items-center gap-4 mb-4">
+          <div class="action-icon gradient-blue text-white shadow-md shadow-blue-500/20">
+            <i class="fas fa-search"></i>
+          </div>
+          <div>
+            <h3 class="text-lg font-bold text-slate-900 dark:text-white">Customer Search</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Find customer records</p>
+          </div>
+        </div>
+        <p class="text-slate-600 dark:text-slate-300 text-xs leading-relaxed mb-6">Search and view complete customer account details from the database.</p>
+        <div class="flex items-center text-blue-600 dark:text-blue-400 font-semibold text-sm">
+          <span>Launch Module</span>
+          <i class="fas fa-arrow-right ml-2 transition-transform group-hover:translate-x-1"></i>
+        </div>
+      </a>
+
+      <!-- Average Calculator -->
+      <a href="calculator.html" class="group block bg-white dark:bg-slate-800 rounded-2xl shadow-sm hover:shadow-md p-6 card-hover fade-in border border-slate-200 dark:border-slate-700/80">
+        <div class="flex items-center gap-4 mb-4">
+          <div class="action-icon gradient-cyan text-white shadow-md shadow-cyan-500/20">
+            <i class="fas fa-calculator"></i>
+          </div>
+          <div>
+            <h3 class="text-lg font-bold text-slate-900 dark:text-white">Average Calculator</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Compute water bills</p>
+          </div>
+        </div>
+        <p class="text-slate-600 dark:text-slate-300 text-xs leading-relaxed mb-6">Calculate progressive water consumption and bills based on active tariffs.</p>
+        <div class="flex items-center text-cyan-600 dark:text-cyan-400 font-semibold text-sm">
+          <span>Launch Module</span>
+          <i class="fas fa-arrow-right ml-2 transition-transform group-hover:translate-x-1"></i>
+        </div>
+      </a>
+
+      <!-- Complaint Record -->
+      <a href="complaints.html" class="group block bg-white dark:bg-slate-800 rounded-2xl shadow-sm hover:shadow-md p-6 card-hover fade-in border border-slate-200 dark:border-slate-700/80">
+        <div class="flex items-center gap-4 mb-4">
+          <div class="action-icon gradient-amber text-white shadow-md shadow-amber-500/20">
+            <i class="fas fa-file-circle-exclamation"></i>
+          </div>
+          <div>
+            <h3 class="text-lg font-bold text-slate-900 dark:text-white">Complaint Record</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Manage complaints</p>
+          </div>
+        </div>
+        <p class="text-slate-600 dark:text-slate-300 text-xs leading-relaxed mb-6">Log, track, assign, and resolve reported customer service issues.</p>
+        <div class="flex items-center text-amber-600 dark:text-amber-400 font-semibold text-sm">
+          <span>Launch Module</span>
+          <i class="fas fa-arrow-right ml-2 transition-transform group-hover:translate-x-1"></i>
+        </div>
+      </a>
+
+      <!-- GPS Mapping -->
+      <a href="customer_gps_mapping_dashboard (3).html" class="group block bg-white dark:bg-slate-800 rounded-2xl shadow-sm hover:shadow-md p-6 card-hover fade-in border border-slate-200 dark:border-slate-700/80">
+        <div class="flex items-center gap-4 mb-4">
+          <div class="action-icon gradient-teal text-white shadow-md shadow-teal-500/20">
+            <i class="fas fa-map-location-dot"></i>
+          </div>
+          <div>
+            <h3 class="text-lg font-bold text-slate-900 dark:text-white">GPS Mapping</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Location analytics</p>
+          </div>
+        </div>
+        <p class="text-slate-600 dark:text-slate-300 text-xs leading-relaxed mb-6">View interactive Kebele maps, inspect meter status, and filter GPS points.</p>
+        <div class="flex items-center text-teal-600 dark:text-teal-400 font-semibold text-sm">
+          <span>Launch Module</span>
+          <i class="fas fa-arrow-right ml-2 transition-transform group-hover:translate-x-1"></i>
+        </div>
+      </a>
+
+    </div>
+
+    <!-- Footer -->
+    <footer class="mt-12 pt-6 border-t border-slate-200 dark:border-slate-800 flex flex-wrap justify-between items-center text-xs text-slate-500 dark:text-slate-400">
+      <div class="flex items-center gap-2">
+        <i class="fas fa-shield-check text-emerald-500 text-sm"></i>
+        <span>Active Session: <strong id="sessionUser" class="text-slate-700 dark:text-slate-300">Admin</strong></span>
+      </div>
+      <div id="footerTimestamp"></div>
+    </footer>
+
+  </div>
+
+  <script>
+    // SESSION CHECK
+    if (localStorage.getItem('loggedIn') !== 'true') {
+      window.location.href = 'login.html';
+    }
+
+    // DISPLAY USER INFO
+    const userName = localStorage.getItem('currentUser') || 'Admin';
+    document.getElementById('userNameDisplay').textContent = userName;
+    document.getElementById('sessionUser').textContent = userName;
+
+    const lastLogin = localStorage.getItem('lastLogin');
+    if (lastLogin) {
+      document.getElementById('lastLoginDisplay').textContent = `Last login: ${lastLogin}`;
+    }
+
+    // LOAD CUSTOMER COUNT FROM EXCEL
+    async function loadCustomerCount() {
+      try {
+        const response = await fetch('customer_database.xlsx');
+        if (!response.ok) throw new Error('File not found');
+        const data = await response.arrayBuffer();
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const json = XLSX.utils.sheet_to_json(sheet);
+        document.getElementById('customerCount').textContent = json.length.toLocaleString();
+      } catch (error) {
+        console.error('Error loading Excel:', error);
+        document.getElementById('customerCount').textContent = '--';
+      }
+    }
+
+    // LOAD COMPLAINT STATS
+    function loadComplaintStats() {
+      const stored = localStorage.getItem('water_complaints');
+      let complaints = [];
+      if (stored) {
+        try { complaints = JSON.parse(stored); } catch (e) {}
+      }
+      document.getElementById('complaintCount').textContent = complaints.length.toLocaleString();
+      
+      const pending = complaints.filter(c => c.status === 'New' || c.status === 'In Progress').length;
+      document.getElementById('pendingCount').textContent = pending.toLocaleString();
+    }
+
+    // DARK MODE SYNC
+    const darkToggle = document.getElementById('darkModeToggle');
+    
+    function setDarkTheme(isDark) {
+      if (isDark) {
+        document.documentElement.classList.add('dark');
+        darkToggle.innerHTML = '<i class="fas fa-sun"></i>';
+      } else {
+        document.documentElement.classList.remove('dark');
+        darkToggle.innerHTML = '<i class="fas fa-moon"></i>';
+      }
+    }
+
+    if (localStorage.getItem('darkMode') === 'enabled') {
+      setDarkTheme(true);
+    } else {
+      setDarkTheme(false);
+    }
+
+    darkToggle.addEventListener('click', () => {
+      const isDark = document.documentElement.classList.toggle('dark');
+      localStorage.setItem('darkMode', isDark ? 'enabled' : 'disabled');
+      setDarkTheme(isDark);
+    });
+
+    // LOGOUT
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      localStorage.removeItem('loggedIn');
+      window.location.href = 'login.html';
+    });
+
+    // TIMESTAMP
+    function updateFooterTimestamp() {
+      document.getElementById('footerTimestamp').textContent =
+        new Date().toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
+    }
+    updateFooterTimestamp();
+    setInterval(updateFooterTimestamp, 30000);
+
+    // INIT
+    loadCustomerCount();
+    loadComplaintStats();
+  </script>
+</body>
+</html>

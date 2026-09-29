@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login – Yirgalem Water Service</title>
+    <script src="https://cdn.tailwindcss.com">
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+        body {
+            background: linear-gradient(135deg, #e0f2fe 0%, #dbeafe 50%, #c7d2fe 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+            padding: 1rem;
+        }
+        .login-card {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(12px);
+            border-radius: 2rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            width: 100%;
+            max-width: 420px;
+            padding: 2.5rem 2rem;
+            transition: all 0.3s ease;
+        }
+        .login-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.3);
+        }
+        .input-group {
+            position: relative;
+        }
+        .input-group .icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+        }
+        .input-group input {
+            padding-left: 2.75rem;
+            width: 100%;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.75rem;
+            padding: 0.75rem 1rem 0.75rem 2.75rem;
+            font-size: 1rem;
+            transition: all 0.2s;
+            background: #f8fafc;
+        }
+        .input-group input:focus {
+            outline: none;
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+            background: white;
+        }
+        .input-group .toggle-password {
+            position: absolute;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        .input-group .toggle-password:hover {
+            color: #475569;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #4f46e5, #6366f1);
+            color: white;
+            font-weight: 600;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem;
+            border: none;
+            width: 100%;
+            font-size: 1rem;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .btn-primary:hover {
+            transform: scale(1.02);
+            box-shadow: 0 10px 20px -8px rgba(79, 70, 229, 0.4);
+        }
+        .btn-primary:active {
+            transform: scale(0.98);
+        }
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .water-icon {
+            font-size: 2.5rem;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .error-message {
+            color: #dc2626;
+            font-size: 0.875rem;
+            min-height: 1.5rem;
+        }
+        .footer-text {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            text-align: center;
+            margin-top: 1.5rem;
+        }
+        .brand {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+        .brand h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin: 0;
+        }
+        .brand span {
+            color: #475569;
+            font-weight: 400;
+            font-size: 0.9rem;
+        }
+        /* Dark mode support */
+        @media (prefers-color-scheme: dark) {
+            body {
+                background: linear-gradient(135deg, #0f172a, #1e293b);
+            }
+            .login-card {
+                background: rgba(30, 41, 59, 0.9);
+                backdrop-filter: blur(12px);
+                border: 1px solid rgba(255, 255, 255, 0.05);
+            }
+            .brand h1 {
+                color: #f1f5f9;
+            }
+            .brand span {
+                color: #94a3b8;
+            }
+            .input-group input {
+                background: #1e293b;
+                border-color: #334155;
+                color: #f1f5f9;
+            }
+            .input-group input:focus {
+                background: #1e293b;
+                border-color: #818cf8;
+                box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3);
+            }
+            .input-group .icon,
+            .input-group .toggle-password {
+                color: #94a3b8;
+            }
+            .input-group .toggle-password:hover {
+                color: #cbd5e1;
+            }
+            .error-message {
+                color: #f87171;
+            }
+            .footer-text {
+                color: #64748b;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="login-card">
+        <!-- Brand -->
+        <div class="brand">
+            <i class="fas fa-tint water-icon"></i>
+            <div>
+                <h1>Yirgalem Water</h1>
+                <span>Service Enterprise</span>
+            </div>
+        </div>
+
+        <!-- Login Form -->
+        <form id="loginForm" novalidate>
+            <div class="space-y-4">
+                <!-- Username -->
+                <div class="input-group">
+                    <i class="fas fa-user icon"></i>
+                    <input type="text" id="username" placeholder="Username" required autocomplete="username" />
+                </div>
+
+                <!-- Password -->
+                <div class="input-group">
+                    <i class="fas fa-lock icon"></i>
+                    <input type="password" id="password" placeholder="Password" required autocomplete="current-password" />
+                    <i class="fas fa-eye toggle-password" id="togglePassword"></i>
+                </div>
+
+                <!-- Error message -->
+                <div id="loginError" class="error-message"></div>
+
+                <!-- Submit -->
+                <button type="submit" class="btn-primary" id="loginBtn">
+                    <i class="fas fa-sign-in-alt mr-2"></i> Sign In
+                </button>
+            </div>
+        </form>
+
+        <!-- Footer -->
+        <div class="footer-text">
+            &copy; 2026 Yirgalem Town Water Service Enterprise
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // ============================================================
+            // SESSION CHECK - If already logged in, redirect to home
+            // ============================================================
+            if (localStorage.getItem('loggedIn') === 'true') {
+                window.location.href = 'home.html';
+                return;
+            }
+
+            // ============================================================
+            // DOM ELEMENTS
+            // ============================================================
+            const form = document.getElementById('loginForm');
+            const usernameInput = document.getElementById('username');
+            const passwordInput = document.getElementById('password');
+            const loginBtn = document.getElementById('loginBtn');
+            const errorDiv = document.getElementById('loginError');
+            const togglePassword = document.getElementById('togglePassword');
+
+            // ============================================================
+            // CREDENTIALS (hardcoded for demo)
+            // ============================================================
+            const VALID_USERNAME = 'admin';
+            const VALID_PASSWORD = 'admin123';
+
+            // ============================================================
+            // TOGGLE PASSWORD VISIBILITY
+            // ============================================================
+            togglePassword.addEventListener('click', function() {
+                const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                passwordInput.setAttribute('type', type);
+                this.classList.toggle('fa-eye');
+                this.classList.toggle('fa-eye-slash');
+            });
+
+            // ============================================================
+            // HANDLE LOGIN FORM SUBMISSION
+            // ============================================================
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+
+                const username = usernameInput.value.trim();
+                const password = passwordInput.value.trim();
+
+                // Clear previous error
+                errorDiv.textContent = '';
+
+                // Validate fields
+                if (!username) {
+                    errorDiv.textContent = 'Please enter your username.';
+                    usernameInput.focus();
+                    return;
+                }
+                if (!password) {
+                    errorDiv.textContent = 'Please enter your password.';
+                    passwordInput.focus();
+                    return;
+                }
+
+                // Authenticate
+                if (username === VALID_USERNAME && password === VALID_PASSWORD) {
+                    // ============================================================
+                    // SUCCESS - Set session data
+                    // ============================================================
+                    localStorage.setItem('loggedIn', 'true');
+                    
+                    // Store username for display
+                    localStorage.setItem('currentUser', username);
+                    
+                    // Store last login timestamp
+                    const now = new Date().toLocaleString('en-US', {
+                        dateStyle: 'medium',
+                        timeStyle: 'short'
+                    });
+                    localStorage.setItem('lastLogin', now);
+
+                    // ============================================================
+                    // REDIRECT TO HOME PAGE
+                    // ============================================================
+                    window.location.href = 'home.html';
+                    
+                } else {
+                    // ============================================================
+                    // FAILED - Show error and shake
+                    // ============================================================
+                    errorDiv.textContent = 'Invalid username or password. Please try again.';
+                    passwordInput.value = '';
+                    passwordInput.focus();
+                    
+                    // Shake animation
+                    form.classList.add('animate-shake');
+                    setTimeout(() => form.classList.remove('animate-shake'), 500);
+                }
+            });
+
+            // ============================================================
+            // SHAKE ANIMATION
+            // ============================================================
+            const style = document.createElement('style');
+            style.textContent = `
+                    @keyframes shake {
+                        0%, 100% { transform: translateX(0); }
+                        10%, 30%, 50%, 70%, 90% { transform: translateX(-6px); }
+                        20%, 40%, 60%, 80% { transform: translateX(6px); }
+                    }
+                    .animate-shake {
+                        animation: shake 0.5s ease-in-out;
+                    }
+                `;
+            document.head.appendChild(style);
+
+            // ============================================================
+            // AUTO-FOCUS USERNAME FIELD
+            // ============================================================
+            usernameInput.focus();
+
+            // ============================================================
+            // ALLOW ENTER KEY TO SUBMIT
+            // ============================================================
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && (e.target === usernameInput || e.target === passwordInput)) {
+                    form.dispatchEvent(new Event('submit'));
+                }
+            });
+
+            // ============================================================
+            // OPTIONAL: Clear any stale session data on login page load
+            // ============================================================
+            // This ensures a clean login state if user navigates back
+            // (already handled by session check at top)
+
+            console.log('🔐 Login page ready. Redirects to home.html after successful login.');
+            console.log('💡 Credentials: admin / admin123');
+        })();
+    </script>
+</body>
+</html>
