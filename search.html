@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Customer Search</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="assets/vendor/xlsx.full.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     body { font-family:'Inter', sans-serif; }
@@ -47,7 +47,10 @@
       </div>
     </div>
 
-    <div id="resultsContainer" class="hidden"></div>
+    <div id="loadStatus" class="mb-6 rounded-xl border border-indigo-200 bg-indigo-50 p-4 text-sm text-indigo-800" role="status" aria-live="polite">
+      Loading the customer database…
+    </div>
+    <div id="resultsContainer" class="hidden" aria-live="polite"></div>
   </div>
 
   <footer class="mt-8 text-center text-gray-500 pb-6">
@@ -77,6 +80,7 @@
     const searchInput = document.getElementById('searchInput');
     const searchButton = document.getElementById('searchButton');
     const resultsContainer = document.getElementById('resultsContainer');
+    const loadStatus = document.getElementById('loadStatus');
     const footerText = document.getElementById('footerText');
 
     searchForm.addEventListener('submit', function(event) {
@@ -94,6 +98,7 @@
 
     async function loadFileFromUrl(url) {
       try {
+        if (typeof XLSX === 'undefined') throw new Error('Spreadsheet reader failed to load.');
         const response = await fetch(url);
         if (!response.ok) throw new Error(`Network response was not ok: ${response.statusText}`);
         const data = await response.arrayBuffer();
@@ -105,11 +110,14 @@
         searchInput.disabled = false;
         searchButton.disabled = false;
         searchInput.placeholder = 'Enter customer name, email, or other details';
-        footerText.textContent = `Customer Search System | Data loaded from: ${url}`;
+        loadStatus.classList.add('hidden');
+        footerText.textContent = `Customer Search System | ${customers.length.toLocaleString()} customer records loaded.`;
         clearResults();
       } catch (error) {
         console.error("Error:", error);
-        searchInput.placeholder = 'File load failed. Check console.';
+        searchInput.placeholder = 'Customer data is unavailable';
+        loadStatus.className = 'mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800';
+        loadStatus.innerHTML = '<strong>Customer data could not be loaded.</strong><br>Please refresh the page. If the problem continues, contact the site administrator.';
         footerText.textContent = "Error: Could not load data.";
       }
     }
@@ -177,7 +185,11 @@
                            .replace(/'/g,'&#039;');
     }
 
-    window.onload = () => loadFileFromUrl(EXCEL_FILE_URL);
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => loadFileFromUrl(EXCEL_FILE_URL), { once: true });
+    } else {
+      loadFileFromUrl(EXCEL_FILE_URL);
+    }
   </script>
 </body>
 </html>
